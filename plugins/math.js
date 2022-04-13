@@ -1,24 +1,27 @@
 let handler = async (m, { conn, args, usedPrefix }) => {
   conn.math = conn.math ? conn.math : {}
-  if (args.length < 1) throw `
-Mode: ${Object.keys(modes).join(' | ')}
-
-Contoh penggunaan: ${usedPrefix}math medium
-`.trim()
+  if (args.length < 1) return await conn.send2Button(m.chat, `
+┌─「 Mode 」
+├ ${Object.keys(modes).join('\n├ ')}
+└────
+contoh: ${usedPrefix}math hard
+`.trim(), watermark, 'Easy', '.math easy', 'Medium', '.math medium', m)
   let mode = args[0].toLowerCase()
-  if (!(mode in modes)) throw `
-Mode: ${Object.keys(modes).join(' | ')}
+  if (!(mode in modes)) return await conn.send2Button(m.chat, `
+┌─「 Mode 」
+├ ${Object.keys(modes).join('\n├ ')}
+└────
+contoh: ${usedPrefix}math hard
+`.trim(), watermark, 'Hard', '.math hard', 'Extreme', '.math extreme', m)
 
-Contoh penggunaan: ${usedPrefix}math medium
-`.trim()
   let id = m.chat
-  if (id in conn.math) return conn.reply(m.chat, 'Masih ada soal belum terjawab di chat ini', conn.math[id][0])
+  if (id in conn.math) return conn.reply(m.chat, 'belum dijawab!', conn.math[id][0])
   let math = genMath(mode)
   conn.math[id] = [
-    await conn.reply(m.chat, `Berapa hasil dari *${math.str}*?\n\nTimeout: ${(math.time / 1000).toFixed(2)} detik\nBonus Jawaban Benar: ${math.bonus} XP`, m),
+    await conn.reply(m.chat, `apa hasil dari *${math.str}*?\n\nwaktu: ${(math.time / 1000).toFixed(2)} detik\nbonus jawaban benar: ${math.bonus} XP, Bonus +${math.daily} Daily Reward`, m),
     math, 4,
-    setTimeout(() => {
-      if (conn.math[id]) conn.reply(m.chat, `Waktu habis!\nJawabannya adalah ${math.result}`, conn.math[id][0])
+    setTimeout(async () => {
+      if (conn.math[id]) await conn.sendButton(m.chat, `waktu habis!\njawabannya *${math.result}*`, wm, 'lagi', `.math ${args[0]}`, conn.math[id][0])
       delete conn.math[id]
     }, math.time)
   ]
@@ -30,14 +33,18 @@ handler.command = /^math/i
 module.exports = handler
 
 let modes = {
-  noob: [-3, 3,-3, 3, '+-', 15000, 10],
-  easy: [-10, 10, -10, 10, '*/+-', 20000, 40],
-  medium: [-40, 40, -20, 20, '*/+-', 40000, 150],
-  hard: [-100, 100, -70, 70, '*/+-', 60000, 350],
-  extreme: [-999999, 999999, -999999, 999999, '*/', 99999, 9999],
-  impossible: [-99999999999, 99999999999, -99999999999, 999999999999, '*/', 30000, 35000],
-  impossible2: [-999999999999999, 999999999999999, -999, 999, '/', 30000, 50000]
-} 
+  noob: [-3, 3, -3, 3, '+-', 15000, 10, 0],
+  easy: [-10, 10, -10, 10, '*/+-', 20000, 40, 0],
+  medium: [-40, 40, -20, 20, '*/+-', 40000, 150, 0],
+  hard: [-100, 100, -70, 70, '*/+-', 60000, 350, 1],
+  extreme: [-999999, 999999, -999999, 999999, '*/', 99999, 9999, 1],
+  impossible: [-99999999999, 99999999999, -99999999999, 999999999999, '*/', 35000, 35000, 1],
+  impossible2: [-999999999999999, 999999999999999, -999, 999, '/', 30000, 50000, 1],
+  superimpossible: [-99999999999999999, 99999999999999999, -99999999999, 99999999999, '/', 50000, 80000, 1],
+  superimpossible2: [-9999999999999999999, 9999999999999999999, -9999999999999, 9999999999999, '/', 80000, 100000, 1],
+  superultraimpossible: [-999999999999999999999, 999999999999999999999, -9999999999999999, 9999999999999999, '/', 120000, 150000, 5],
+  superultrainsting: [-99999999999999999999999, 99999999999999999999999, -999999999999999999, 999999999999999999, '/', 150000, 180000, 5]
+}
 
 let operators = {
   '+': '+',
@@ -47,7 +54,7 @@ let operators = {
 }
 
 function genMath(mode) {
-  let [a1, a2, b1, b2, ops, time, bonus] = modes[mode]
+  let [a1, a2, b1, b2, ops, time, bonus, daily] = modes[mode]
   let a = randomInt(a1, a2)
   let b = randomInt(b1, b2)
   let op = pickRandom([...ops])
@@ -58,7 +65,8 @@ function genMath(mode) {
     mode,
     time,
     bonus,
-    result
+    result,
+    daily
   }
 }
 
